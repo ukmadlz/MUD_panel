@@ -7,6 +7,7 @@ class PlayerController extends BaseController {
 		//-- IDS
 		$game_id = Route::input('game');
 		$coord = Route::input('coord');
+		$player_id = Route::input('pname');
 		
 		//-- Grab Map
 		$map = Map::find($game_id);
@@ -16,41 +17,67 @@ class PlayerController extends BaseController {
 		$coord = explode(",", $coord);
 		$extra = array();
 		$display = "";
+		$complete = false;
 		
-		switch ($map_array[$coord[0]."x".$coord[1]]) {
+		//-- $this->sendToPusher($game_id, $coord[0]."x".$coord[1], 'Start');
+		
+		if (!isset($map_array[$coord[0]."x".$coord[1]]))
+		{
+			//-- Room is actually a wall!
+			$display = "You cannot move in that direction.";
+			$status = false;
 			
-			default:
-				//-- Nothing found
-				$status = false;
-				$display = "Jake Error";
-				break;
-			
-			case "#":
-				//-- Floor, can user move in other directions?
-				$status = true;
-				$extra = $this->userMove($game_id, array('y' => $coord[1], 'x' => $coord[0]));
-				$g = array(); 
-				foreach($extra AS $n => $d) {
-					if ($d == true) { $g[] = $n; }
-				}
-				$this->sendToPusher($game_id, $coord[0]."x".$coord[1]);
-				$display = "Your in a room. You can move ".implode(",", $g);
-				break;
-			
-			case "0":
-				//-- Room is actually a wall!
-				$display = "You cannot move in that direction.";
-				$status = false;
-				break;
-			
-			case "^":
-				//-- Stairs
-				$status = true;
-				$display = "Dungeon Complete";
-				break;
+		} else {
+
+			switch ($map_array[$coord[0]."x".$coord[1]]) {
+
+				default:
+					//-- Nothing found
+					$status = false;
+					$display = "Jake Error";
+					break;
+
+				case "#":
+					//-- Floor, can user move in other directions?
+					$status = true;
+					$extra = $this->userMove($game_id, array('y' => $coord[1], 'x' => $coord[0]));
+					$g = array(); 
+					foreach($extra AS $n => $d) {
+						if ($d == true) { $g[] = $n; }
+					}
+					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
+					$display = "Your in a room. You can move ".implode(",", $g);
+					break;
+
+				case "0":
+					//-- Room is actually a wall!
+					$display = "You cannot move in that direction.";
+					$status = false;
+					break;
+
+				case "^":
+					//-- Stairs
+					$status = true;
+					$display = "Dungeon Complete";
+					$complete = true;
+					break;
+				
+				case "S":
+					//-- back at spawn
+					$status = true;
+					$extra = $this->userMove($game_id, array('y' => $coord[1], 'x' => $coord[0]));
+					$g = array(); 
+					foreach($extra AS $n => $d) {
+						if ($d == true) { $g[] = $n; }
+					}
+					$this->sendToPusher($game_id, $coord[0]."x".$coord[1]);
+					$display = "Your back at the start! You can move ".implode(",", $g);
+					break;
+			}
+
 		}
 		
-		return Response::json(array('status' => $status, 'tile' => $map_array[$coord[0]."x".$coord[1]], 'extra' => $extra, "string" => $display));
+		return Response::json(array('status' => $status, 'extra' => $extra, "string" => $display, 'coord' => $coord[0]."x".$coord[1], 'complete' => $complete));
 	}
 	
 	public function userMove($game_id, $current = array())
@@ -75,7 +102,7 @@ class PlayerController extends BaseController {
 		
 		//-- Check Down (Y + 1)
 		//-- echo "S Checking: ".($current['x'])."x".($current['y'] + 1)." - ".$map_array[($current['x'])."x".($current['y'] + 1)]."\n";
-		if (($current['y'] + 1 >= $map->size) || ($map_array[($current['x'])."x".($current['y'] + 1)] == "0")) {
+		if (($current['y'] + 1 > $map->size) || ($map_array[($current['x'])."x".($current['y'] + 1)] == "0")) {
 			$resp['S'] = false;
 		} else {
 			$resp['S'] = true;
@@ -91,7 +118,7 @@ class PlayerController extends BaseController {
 		
 		//-- Check Right (X + 1)
 		//-- echo "E Checking: ".($current['x'] + 1)."x".($current['y'])." -  ".$map_array[($current['x'] + 1)."x".($current['y'])]."\n";
-		if (($current['x'] + 1 >= $map->size) || ($map_array[($current['x'] + 1)."x".($current['y'])] == "0")) {
+		if (($current['x'] + 1 > $map->size) || ($map_array[($current['x'] + 1)."x".($current['y'])] == "0")) {
 			$resp['E'] = false;
 		} else {
 			$resp['E'] = true;
@@ -101,9 +128,9 @@ class PlayerController extends BaseController {
 	}
 	
 		
-	public function sendToPusher($game_id, $coord)
+	public function sendToPusher($game_id, $coord, $channel = 'move')
 	{
 		$pusher = new Pusher( "56e8164e0555e60345c9", "3dc8ae413981c7ae30f0", "83979", false, 'https://api.pusherapp.com', 443 );
-		$pusher->trigger( 'map_' . $game_id, 'move', $coord );
+		$pusher->trigger( 'map_' . $game_id, $channel, $coord );
 	}
 }

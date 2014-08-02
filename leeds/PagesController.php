@@ -11,7 +11,7 @@ class PagesController extends BaseController {
 	
 	public function showMaps()
     {
-		$maps = Map::all();
+		$maps = Map::orderBy('created_at', 'desc')->get();
 		$this->layout->content = View::make('maps', array('maps' => $maps));
 	}
 	
@@ -29,7 +29,7 @@ class PagesController extends BaseController {
 		for($x=1; $x<=$map->size; $x++){
 			$html .= '<tr>';
 			for($y=1; $y<=$map->size; $y++){
-				$html .= '<td style="width:'.$width.'px;height:'.$width.'px;text-align:center;vertical-align:middle;color:#FFF;';
+				$html .= '<td style="width:'.$width.'px;height:'.$width.'px;text-align:center;vertical-align:middle;color:#FFF;font-size: 40px;';
 				
 				switch($map_array[$y."x".$x]) {
 					case "#";
