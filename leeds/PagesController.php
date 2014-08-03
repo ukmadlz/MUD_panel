@@ -23,13 +23,13 @@ class PagesController extends BaseController {
 		$map = Map::find($map_id);
 		$map_array = json_decode($map->map, true);
 		
-		$width = number_format(500 / $map->size, 0);
+		$width = number_format(620 / $map->size, 0);
 		
 		$html .= '<table>';
 		for($x=1; $x<=$map->size; $x++){
 			$html .= '<tr>';
 			for($y=1; $y<=$map->size; $y++){
-				$html .= '<td style="width:'.$width.'px;height:'.$width.'px;text-align:center;vertical-align:middle;color:#FFF;font-size: 40px;opacity:1;';
+				$html .= '<td style="width:'.$width.'px;height:'.$width.'px;text-align:center;vertical-align:middle;color:#FFF;opacity:1;';
 				
 				switch($map_array[$y."x".$x]) {
 					case "#";
@@ -58,7 +58,43 @@ class PagesController extends BaseController {
 		}
 		$html .= '</table>';
 		
+		$this->layout = View::make('presentation');
 		$this->layout->content = View::make('single_map', array('html' => $html, 'game_id' => $map_id));
 	}
+	
+	public function jsonView()
+	{
+		//-- 	
+		$map_id = Route::input('game');
+		$map = Map::find($map_id);
+		$map_array = json_decode($map->map, true);
+		$json = array();
+		
+		for($x=1; $x<=$map->size; $x++){
+			for($y=1; $y<=$map->size; $y++){
+				$json[$x][$y] = $map_array[$y."x".$x];
+			}
+		}
+		
+		return Response::json($json);
+	}
+	
+	public function latestJson()
+	{
+		//--
+		$map = Map::orderBy('id', 'desc')->first();
+		$map_array = json_decode($map->map, true);
+		$json = array();
+		
+		for($x=1; $x<=$map->size; $x++){
+			for($y=1; $y<=$map->size; $y++){
+				$json[$x][$y] = $map_array[$y."x".$x];
+			}
+		}
+		
+		return Response::json($json);
+	}
+	
+	
 	
 }

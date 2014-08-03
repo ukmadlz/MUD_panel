@@ -1,8 +1,11 @@
 @section('main-area')
 
 <div class="row">
-	<div class="col-md-12">
+	<div class="col-md-6">
 		{{ $html }}
+	</div>
+	<div class="col-md-6">
+		<iframe seamless="seamless" src="http://104.131.212.45/webface" width="100%" height="600px"/>
 	</div>
 </div>
 
@@ -27,7 +30,7 @@
 	});
 	
 	channel.bind('dead', function(data) {
-		console.log('User: ' + data.pid + " Died");
+		console.log('User: ' + data.pid + " Died (You: " + data.your_l + " v Them: " + data.there_l);
 		$('.player_' + data.pid).remove();
 	});
 	

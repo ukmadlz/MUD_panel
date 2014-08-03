@@ -28,7 +28,7 @@ class PlayerController extends BaseController {
 		//-- Monster Lose
 		$this->lang['monster']['lose'][] = "The beast is just too strong - it overpowers you. You re-awaken in a room.";
 		$this->lang['monster']['lose'][] = "The beast kills you, after you take an arrow to the knee. You start again in a room.";
-		$this->lang['monster']['lose'][] = "In one swipe of the beast's claws your life is over. You re-awaken in a room.";
+		$this->lang['monster']['lose'][] = "In one swipe of the beast's claws your life is over. You re-awaken in a new dungeon.";
 		
 		//-- Picked up Loot
 		$this->lang['loot'][] = "You have picked up";
@@ -53,6 +53,7 @@ class PlayerController extends BaseController {
 		$extra = array();
 		$display = "";
 		$complete = false;
+		$boss = false;
 		
 		//-- $this->sendToPusher($game_id, $coord[0]."x".$coord[1], 'Start');
 		
@@ -92,10 +93,18 @@ class PlayerController extends BaseController {
 					break;
 
 				case "^":
-					//-- Stairs
+					//-- Boss fight
 					$status = true;
-					$display = "Dungeon Complete";
-					$complete = true;
+					$extra = $this->userMove($game_id, array('y' => $coord[1], 'x' => $coord[0]));
+					$g = array(); 
+					foreach($extra AS $n => $d) {
+						if ($d == true) { $g[] = $n; }
+					}
+					$monster = $this->createMonster($player_id, $coord[0]."x".$coord[1], $level, $game_id);
+					$mon = Monster::find($monster);
+					$display = "You come across a Level ".$mon->level." ".$mon->monster." [ Your Level ".$level." ]. Fight or ".implode(",", $g);
+					$complete = false;
+					$boss = true;
 					break;
 				
 				case "S":
@@ -119,7 +128,7 @@ class PlayerController extends BaseController {
 						if ($d == true) { $g[] = $n; }
 					}
 					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
-					$monster = $this->createMonster($player_id, $coord[0]."x".$coord[1], $level);
+					$monster = $this->createMonster($player_id, $coord[0]."x".$coord[1], $level, $game_id);
 					$mon = Monster::find($monster);
 					$display = "You come across a Level ".$mon->level." ".$mon->monster." [ Your Level ".$level." ]. Fight or ".implode(",", $g);
 					break;
@@ -139,7 +148,7 @@ class PlayerController extends BaseController {
 
 		}
 		
-		return Response::json(array('status' => $status, 'extra' => $extra, "string" => $display, 'coord' => $coord[0]."x".$coord[1], 'complete' => $complete));
+		return Response::json(array('status' => $status, 'extra' => $extra, "string" => $display, 'coord' => $coord[0]."x".$coord[1], 'complete' => $complete, 'boss' => $boss));
 	}
 	
 	public function userMove($game_id, $current = array())
@@ -204,7 +213,7 @@ class PlayerController extends BaseController {
 		$pusher->trigger( 'map_' . $game_id, $channel, $coord );
 	}
 	
-	public function createMonster($player, $coord, $level)
+	public function createMonster($player, $coord, $level, $game)
 	{
 		//-- Get Monster from Mike
 		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/monster?level=' . $level);
@@ -215,7 +224,9 @@ class PlayerController extends BaseController {
 		$monster->player = $player;
 		$monster->coord = $coord."x0";
 		$monster->monster = $mike['name'];
+		$monster->game_id = $game;
 		$monster->level = $mike['overalLevel'];
+		//- $monster->level = 1;
 		$monster->save();
 		
 		//-- Return ID
@@ -273,35 +284,45 @@ class PlayerController extends BaseController {
 		$coord = Route::input('coord');
 		$player_id = Route::input('pname');
 		$level = Route::input('level');
+		$coord = explode(",", $coord);
 		
 		//-- Grab Map
 		$map = Map::find($game_id);
 		$map_array = json_decode($map->map, true);
 		
 		//-- Grab Monster
-		$monster = Monster::where('player', $player_id)->where('coord', str_replace(",", "x", $coord))->first();
+		$monster = Monster::where('player', $player_id)->where('coord', $coord[0]."x".$coord[1]."x0")->where('game_id', $game_id)->first();
+		//-- dd($player_id." ".$coord[0]."x".$coord[1]."x0 ".$game_id);
 		
 		//-- Check if the co-ordinate is cool
-		$coord = explode(",", $coord);
 		$extra = array();
 		$display = "";
 		$complete = false;
+		$mike = array();
+		$skip = false;
 		
 		//-- Ask mike who wins
-		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/fight?player={%22overalLevel%22:'.$level.'}&monster={%22overalLevel%22:'.$monster->level.'}');
-		$mike = json_decode($response, true);
+		try {
+			$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/fight?player={%22overalLevel%22:'.$level.'}&monster={%22overalLevel%22:'.$monster->level.'}');		
+			$mike = json_decode($response, true);
+		} catch (Exception $e) {
+			$mike['success'] = true;
+			$skip = true;
+		}
 		
 		if ($mike['success'] == false) {
 			$status = "dead";
 			$display = $this->lang['monster']['lose'][rand(0, 2)];
-			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id), 'dead');
+			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id, "your_l" => $level, "there_l" => $monster->level), 'dead');
 		} else {
 			$status = true;
 			$display = $this->lang['monster']['win'][rand(0, 6)];
 			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id), 'beat');
 		}
 		
-		$monster->delete();
+		if ($skip != true) {
+			$monster->delete();
+		}
 		
 		return Response::json(array('status' => $status, "string" => $display, 'coord' => $coord[0]."x".$coord[1]));
 	}

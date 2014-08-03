@@ -10,6 +10,7 @@
 				<th>Map Size</th>
 				<th>Created Date</th>
 				<th>Options</th>
+				<th>json</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -19,6 +20,7 @@
 				<td>{{ $map['size'] }}</td>
 				<td>{{ $map['created_at'] }}</td>
 				<td><a href='{{ action('PagesController@prettyView', array($map['id'])) }}'>View</a></td>
+				<td><a href='{{ action('PagesController@jsonView', array($map['id'])) }}'>View</a></td>
 			</tr>
 			@endforeach
 		</tbody>

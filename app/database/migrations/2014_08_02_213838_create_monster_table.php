@@ -19,6 +19,7 @@ class CreateMonsterTable extends Migration {
 			$table->string('coord');
 			$table->text('monster');
 			$table->integer('level');
+			$table->integer('game_id');
 			$table->timestamps();
 		});
 	}

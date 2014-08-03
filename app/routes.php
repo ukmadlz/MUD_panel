@@ -15,6 +15,8 @@
 Route::any('/', 						'PagesController@showIndex');
 Route::any('maps', 						'PagesController@showMaps');
 Route::any('map/view/{game}', 			'PagesController@prettyView');
+Route::any('map/json/{game}', 			'PagesController@jsonView');
+Route::any('map/latest', 				'PagesController@latestJson');
 
 //-- Maps
 Route::any('map/create', 				'MapController@createMap');
