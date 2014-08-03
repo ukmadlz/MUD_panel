@@ -26,9 +26,9 @@ class PlayerController extends BaseController {
 		$this->lang['monster']['win'][] = "You take an arrow to the knee - but you stil prevail.";
 		
 		//-- Monster Lose
-		$this->lang['monster']['lose'][] = "The beast is just too strong - it overpowers you.";
-		$this->lang['monster']['lose'][] = "The beast kills you, after you take an arrow to the knee.";
-		$this->lang['monster']['lose'][] = "In one swipe of the beast's claws your life is over.";
+		$this->lang['monster']['lose'][] = "The beast is just too strong - it overpowers you. You re-awaken in a room.";
+		$this->lang['monster']['lose'][] = "The beast kills you, after you take an arrow to the knee. You start again in a room.";
+		$this->lang['monster']['lose'][] = "In one swipe of the beast's claws your life is over. You re-awaken in a room.";
 		
 		//-- Picked up Loot
 		$this->lang['loot'][] = "You have picked up";
@@ -119,7 +119,7 @@ class PlayerController extends BaseController {
 						if ($d == true) { $g[] = $n; }
 					}
 					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
-					$monster = $this->createMonster($player_id, $coord[0]."x".$coord[1]);
+					$monster = $this->createMonster($player_id, $coord[0]."x".$coord[1], $level);
 					$mon = Monster::find($monster);
 					$display = "You come across a Level ".$mon->level." ".$mon->monster." [ Your Level ".$level." ]. Fight or ".implode(",", $g);
 					break;
@@ -204,10 +204,10 @@ class PlayerController extends BaseController {
 		$pusher->trigger( 'map_' . $game_id, $channel, $coord );
 	}
 	
-	public function createMonster($player, $coord)
+	public function createMonster($player, $coord, $level)
 	{
 		//-- Get Monster from Mike
-		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/monster');
+		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/monster?level=' . $level);
 		$mike = json_decode($response, true);
 		
 		//-- Create Monster
@@ -246,12 +246,21 @@ class PlayerController extends BaseController {
 				//-- Nothing found
 				$status = false;
 				$display = "No Loot";
+				return Response::json(array('status' => false, 'string' => "There is nothing to open."));
 				break;
 			
 			case "L":
 				//-- Awesome - send Loot as an object
 				$status = true;
-				return Response::json(array('status' => $status, 'loot' => $mike, 'display' => $this->lang['loot'][rand(0, 2)]." ".$mike['name']));
+			
+				//-- Remove loot from system
+				$map_array[$coord[0]."x".$coord[1]] = "#";
+				$map->map = json_encode($map_array);
+				$map->save();
+			
+				$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id, 'loot' => $mike['name']." (".$mike['modifier'].")"), 'loot');
+			
+				return Response::json(array('status' => $status, 'loot' => $mike, 'string' => $this->lang['loot'][rand(0, 2)]." ".$mike['name']." (".$mike['modifier'].")"));
 				break;
 		}
 			
@@ -285,9 +294,11 @@ class PlayerController extends BaseController {
 		if ($mike['success'] == false) {
 			$status = "dead";
 			$display = $this->lang['monster']['lose'][rand(0, 2)];
+			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id), 'dead');
 		} else {
 			$status = true;
 			$display = $this->lang['monster']['win'][rand(0, 6)];
+			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id), 'beat');
 		}
 		
 		$monster->delete();

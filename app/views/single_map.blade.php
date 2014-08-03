@@ -21,5 +21,18 @@
 		$('.player_' + data.pid).remove();
 		$('.pos_' + data.coord).html('<i class="fa ' + data.icon + ' player_' + data.pid + '" title="' + data.pid + '"></i>');
 	});
+	
+	channel.bind('loot', function(data) {
+		 console.log('User: ' + data.pid + " Loot: " + data.loot);
+	});
+	
+	channel.bind('dead', function(data) {
+		console.log('User: ' + data.pid + " Died");
+		$('.player_' + data.pid).remove();
+	});
+	
+	channel.bind('beat', function(data) {
+		 console.log('User: ' + data.pid + " Beat a monster");
+	});
 </script>
 @show
