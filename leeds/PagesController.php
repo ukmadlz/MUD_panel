@@ -23,13 +23,13 @@ class PagesController extends BaseController {
 		$map = Map::find($map_id);
 		$map_array = json_decode($map->map, true);
 		
-		$width = number_format(700 / $map->size, 0);
+		$width = number_format(500 / $map->size, 0);
 		
 		$html .= '<table>';
 		for($x=1; $x<=$map->size; $x++){
 			$html .= '<tr>';
 			for($y=1; $y<=$map->size; $y++){
-				$html .= '<td style="width:'.$width.'px;height:'.$width.'px;text-align:center;vertical-align:middle;color:#FFF;font-size: 40px;';
+				$html .= '<td style="width:'.$width.'px;height:'.$width.'px;text-align:center;vertical-align:middle;color:#FFF;font-size: 40px;opacity:1;';
 				
 				switch($map_array[$y."x".$x]) {
 					case "#";
@@ -42,6 +42,12 @@ class PagesController extends BaseController {
 						$html .= 'background: #c0392b;"';
 						break;
 					case "S";
+						$html .= 'background: #7f8c8d;"';
+						break;
+					case "M":
+						$html .= 'background: #8e44ad;"';
+						break;
+					case "L":
 						$html .= 'background: #f1c40f;"';
 						break;
 				}

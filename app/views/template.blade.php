@@ -3,7 +3,7 @@
 <head>
 
 	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-	<link rel="stylesheet" href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css">
+	<link rel="stylesheet" href="{{ asset('style.css') }}">
 	<title>MUD Panel</title>
 	@section('head-area')
     @show

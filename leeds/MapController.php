@@ -12,7 +12,7 @@ class MapController extends BaseController {
 	public $size = 1;
 	public $out = array('x' => 0, 'y' => 0);
 	public $spawn = array('x' => 0, 'y' => 0);
-	public $object = array('floor' => '#', 'wall' => '0', 'stairs' => '^', 'spawn' => 'S');
+	public $object = array('floor' => '#', 'wall' => '0', 'stairs' => '^', 'spawn' => 'S', 'monster' => 'M', 'loot' => "L");
 	
 	//-- Output
 	public $output;
@@ -25,7 +25,9 @@ class MapController extends BaseController {
 	{
 		$this->size = $size;	
 		
-		$this->createBasicMap();
+		$this->createBasicMap();		
+		$this->createMonster();
+		$this->createLoot();
 		$this->createSpawn();
 		
 		//-- Pathfinding
@@ -79,6 +81,25 @@ class MapController extends BaseController {
 		$this->output[$this->out['y']."x".$this->out['x']] = $this->object['stairs'];
 	}
 	
+	public function createMonster()
+	{
+		$how_many = rand(2, 5);
+		for($i = 1; $i <= $how_many; $i++)
+		{
+			$this->output[rand(1, $this->size - 1)."x".rand(1, $this->size - 1)] = $this->object['monster'];
+		}
+	}
+	
+	public function createLoot()
+	{
+		$how_many = rand(5, 10);
+		//$how_many = 0;
+		for($i = 1; $i <= $how_many; $i++)
+		{
+			$this->output[rand(1, $this->size - 1)."x".rand(1, $this->size - 1)] = $this->object['loot'];
+		}
+	}
+	
 	public function pathfinder()
 	{
 		$path = new PathFinder();
@@ -88,12 +109,17 @@ class MapController extends BaseController {
 		$path->setMap($this->pathfind);
 		$this->walked = $path->returnPath(); //returns an array with coordinates (like 1x2 etc)
 		
-		//-- Can I actually be saved?
-		if ($this->walked[count($this->walked) - 1] == ($this->out['y']."x".$this->out['x'])) {
-			return true;
-		} else {
-			return false;
+		if ($this->spawn['x'] != $this->out['x'] ) {
+
+			//-- Can I actually be saved?
+			if ($this->walked[count($this->walked) - 1] == ($this->out['y']."x".$this->out['x'])) {
+				return true;
+			} else {
+				return false;
+			}
 		}
+		
+		return false;
 	}
 	
 	public function basicStyle()

@@ -2,9 +2,7 @@
 
 <div class="row">
 	<div class="col-md-12">
-
 		{{ $html }}
-		
 	</div>
 </div>
 
@@ -20,9 +18,8 @@
 	var pusher = new Pusher('56e8164e0555e60345c9');
 	var channel = pusher.subscribe('map_{{ $game_id }}');
     channel.bind('move', function(data) {
-		$('#player_' + data.pid).remove();
-		$('.pos_' + data.coord).html('<i class="fa fa-gamepad" id="player_' + data.pid + '" title="' + data.pid + '"></i>');
+		$('.player_' + data.pid).remove();
+		$('.pos_' + data.coord).html('<i class="fa ' + data.icon + ' player_' + data.pid + '" title="' + data.pid + '"></i>');
 	});
 </script>
-
 @show

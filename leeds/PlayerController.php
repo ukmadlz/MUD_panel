@@ -2,12 +2,47 @@
 
 class PlayerController extends BaseController {
 	
+	public $lang = array();
+	
+	public function __construct() {
+		
+		//-- Room Text
+		$this->lang['room'][] = "Your in a dark room.";
+		$this->lang['room'][] = "You appear to be in a corridor.";
+		$this->lang['room'][] = "Your in a small clearing.";
+		$this->lang['room'][] = "There is a small apple tree in this clearing.";
+		$this->lang['room'][] = "Your walking through thick bush.";
+		$this->lang['room'][] = "You are in a built up area.";
+		$this->lang['room'][] = "There doesn't appear to be much around here.";
+		$this->lang['room'][] = "You can hear the seagulls by the ocean.";
+		$this->lang['room'][] = "Its getting near nightfall as you wander through.";
+		
+		//-- Monster Fight
+		$this->lang['monster']['win'][] = "You fight the monster, and after a tough battle you deal the final blow.";
+		$this->lang['monster']['win'][] = "You slay the beast with nothing but your hands and a hair-comb.";
+		$this->lang['monster']['win'][] = "You fashion a weapon with what is around you, and slay the beast.";
+		$this->lang['monster']['win'][] = "In a fit of rage you batter the beast.";
+		$this->lang['monster']['win'][] = "Both you and the beast trade blows - but being the hero you are, you prevail.";
+		$this->lang['monster']['win'][] = "You take an arrow to the knee - but you stil prevail.";
+		
+		//-- Monster Lose
+		$this->lang['monster']['lose'][] = "The beast is just too strong - it overpowers you.";
+		$this->lang['monster']['lose'][] = "The beast kills you, after you take an arrow to the knee.";
+		$this->lang['monster']['lose'][] = "In one swipe of the beast's claws your life is over.";
+		
+		//-- Picked up Loot
+		$this->lang['loot'][] = "You have picked up";
+		$this->lang['loot'][] = "You open the chest, and you pick up";
+		$this->lang['loot'][] = "In the chest is a mystical weapon... ";
+	}
+	
 	public function checkCoord()
 	{
 		//-- IDS
 		$game_id = Route::input('game');
 		$coord = Route::input('coord');
 		$player_id = Route::input('pname');
+		$level = Route::input('level');
 		
 		//-- Grab Map
 		$map = Map::find($game_id);
@@ -46,12 +81,13 @@ class PlayerController extends BaseController {
 						if ($d == true) { $g[] = $n; }
 					}
 					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
-					$display = "Your in a room. You can move ".implode(",", $g);
+					//-- $display = "Your in a room. You can move ".implode(",", $g);
+					$display = $this->lang['room'][rand(0, 2)]." You can move ".implode(",", $g);
 					break;
 
 				case "0":
 					//-- Room is actually a wall!
-					$display = "You cannot move in that direction.";
+					$display = "You cannot move in that direction. Try another.";
 					$status = false;
 					break;
 
@@ -70,8 +106,34 @@ class PlayerController extends BaseController {
 					foreach($extra AS $n => $d) {
 						if ($d == true) { $g[] = $n; }
 					}
-					$this->sendToPusher($game_id, $coord[0]."x".$coord[1]);
+					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
 					$display = "Your back at the start! You can move ".implode(",", $g);
+					break;
+				
+				case "M":
+					//-- Fight Monster
+					$status = true;
+					$extra = $this->userMove($game_id, array('y' => $coord[1], 'x' => $coord[0]));
+					$g = array(); 
+					foreach($extra AS $n => $d) {
+						if ($d == true) { $g[] = $n; }
+					}
+					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
+					$monster = $this->createMonster($player_id, $coord[0]."x".$coord[1]);
+					$mon = Monster::find($monster);
+					$display = "You come across a Level ".$mon->level." ".$mon->monster." [ Your Level ".$level." ]. Fight or ".implode(",", $g);
+					break;
+				
+				case "L":
+					//-- Loot
+					$status = true;
+					$extra = $this->userMove($game_id, array('y' => $coord[1], 'x' => $coord[0]));
+					$g = array(); 
+					foreach($extra AS $n => $d) {
+						if ($d == true) { $g[] = $n; }
+					}
+					$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id));
+					$display = "You come across a chest! Open or ".implode(",", $g);
 					break;
 			}
 
@@ -126,11 +188,115 @@ class PlayerController extends BaseController {
 		
 		return $resp;
 	}
-	
 		
 	public function sendToPusher($game_id, $coord, $channel = 'move')
 	{
 		$pusher = new Pusher( "56e8164e0555e60345c9", "3dc8ae413981c7ae30f0", "83979", false, 'https://api.pusherapp.com', 443 );
+
+		if (strpos($coord['pid'], "witter") > 0) {
+			$icon = "fa-twitter";
+		} elseif (strpos($coord['pid'], "wilio") > 0) {
+			$icon = "fa-phone";
+		} else {
+			$icon = "fa-gamepad";
+		}
+		$coord['icon'] = $icon;
 		$pusher->trigger( 'map_' . $game_id, $channel, $coord );
+	}
+	
+	public function createMonster($player, $coord)
+	{
+		//-- Get Monster from Mike
+		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/monster');
+		$mike = json_decode($response, true);
+		
+		//-- Create Monster
+		$monster = new Monster();
+		$monster->player = $player;
+		$monster->coord = $coord."x0";
+		$monster->monster = $mike['name'];
+		$monster->level = $mike['overalLevel'];
+		$monster->save();
+		
+		//-- Return ID
+		return $monster->id;
+	}
+		
+	public function grabLoot()
+	{
+		//-- IDS
+		$game_id = Route::input('game');
+		$coord = Route::input('coord');
+		$player_id = Route::input('pname');
+		$level = Route::input('level');
+		$coord = explode(",", $coord);
+		
+		//-- Grab Map
+		$map = Map::find($game_id);
+		$map_array = json_decode($map->map, true);
+		
+		//-- Mike
+		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/loot');
+		$mike = json_decode($response, true);
+		
+		//-- Make sure Coord is Loot
+		switch ($map_array[$coord[0]."x".$coord[1]]) {
+
+			default:
+				//-- Nothing found
+				$status = false;
+				$display = "No Loot";
+				break;
+			
+			case "L":
+				//-- Awesome - send Loot as an object
+				$status = true;
+				return Response::json(array('status' => $status, 'loot' => $mike, 'display' => $this->lang['loot'][rand(0, 2)]." ".$mike['name']));
+				break;
+		}
+			
+	}
+	
+	public function fightMonster()
+	{
+		//-- IDS
+		$game_id = Route::input('game');
+		$coord = Route::input('coord');
+		$player_id = Route::input('pname');
+		$level = Route::input('level');
+		
+		//-- Grab Map
+		$map = Map::find($game_id);
+		$map_array = json_decode($map->map, true);
+		
+		//-- Grab Monster
+		$monster = Monster::where('player', $player_id)->where('coord', str_replace(",", "x", $coord))->first();
+		
+		//-- Check if the co-ordinate is cool
+		$coord = explode(",", $coord);
+		$extra = array();
+		$display = "";
+		$complete = false;
+		
+		//-- Ask mike who wins
+		$response = cURL::get('http://aqueous-springs-3113.herokuapp.com/fight?player={%22overalLevel%22:'.$level.'}&monster={%22overalLevel%22:'.$monster->level.'}');
+		$mike = json_decode($response, true);
+		
+		if ($mike['success'] == false) {
+			$status = "dead";
+			$display = $this->lang['monster']['lose'][rand(0, 2)];
+		} else {
+			$status = true;
+			$display = $this->lang['monster']['win'][rand(0, 6)];
+		}
+		
+		$monster->delete();
+		
+		return Response::json(array('status' => $status, "string" => $display, 'coord' => $coord[0]."x".$coord[1]));
+	}
+	
+	public function language()
+	{
+		
 	}
 }

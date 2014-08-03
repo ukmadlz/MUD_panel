@@ -20,4 +20,6 @@ Route::any('map/view/{game}', 			'PagesController@prettyView');
 Route::any('map/create', 				'MapController@createMap');
 
 //-- Player stuff
-Route::any('player/check/{game}/{coord}/{pname?}', 		'PlayerController@checkCoord');
+Route::any('player/check/{game}/{coord}/{pname?}/{level}', 		'PlayerController@checkCoord');
+Route::any('player/fight/{game}/{coord}/{pname?}/{level}', 		'PlayerController@fightMonster');
+Route::any('player/loot/{game}/{coord}/{pname?}/{level}', 		'PlayerController@grabLoot');

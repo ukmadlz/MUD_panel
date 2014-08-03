@@ -5,7 +5,8 @@
 	"license": "MIT",
 	"require": {
 		"laravel/framework": "4.2.*",
-		"pusher/pusher-php-server": "dev-master"
+		"pusher/pusher-php-server": "dev-master",
+		"anlutro/curl": "dev-master"
 	},
 	"autoload": {
 		"classmap": [
