@@ -201,9 +201,9 @@ class PlayerController extends BaseController {
 	public function sendToPusher($game_id, $coord, $channel = 'move')
 	{
 		$pusher = new Pusher(
-			(($pusherKey = getenv("PUSHER_KEY"))?$pusherKey:'')),
-			(($pusherSecret = getenv("PUSHER_SECRET"))?$pusherSecret:'')),
-			(($pusherAppId = getenv("PUSHER_APP_ID"))?$pusherAppId:'')),
+			(($pusherKey = getenv("PUSHER_KEY"))?$pusherKey:''),
+			(($pusherSecret = getenv("PUSHER_SECRET"))?$pusherSecret:''),
+			(($pusherAppId = getenv("PUSHER_APP_ID"))?$pusherAppId:''),
 			false, '
 			https://api.pusherapp.com',
 			443
