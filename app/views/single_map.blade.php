@@ -20,7 +20,7 @@
 @section('javascript-include')
 <script src="//js.pusher.com/2.2/pusher.min.js" type="text/javascript"></script>
 <script>
-	var pusher = new Pusher(<?=getenv("PUSHER_KEY");?>);
+	var pusher = new Pusher('<?=getenv("PUSHER_KEY");?>');
 	var channel = pusher.subscribe('map_{{ $game_id }}');
     channel.bind('move', function(data) {
 		console.log(data);
