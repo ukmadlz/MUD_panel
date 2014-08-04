@@ -310,14 +310,21 @@ class PlayerController extends BaseController {
 			$skip = true;
 		}
 		
+		$g = rand(0, 100);
+		if ($g < 90) {
+			$mike['success'] = true;
+		} else {
+			$mike['success'] = false;
+		}
+		
 		if ($mike['success'] == false) {
 			$status = "dead";
 			$display = $this->lang['monster']['lose'][rand(0, 2)];
-			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id, "your_l" => $level, "there_l" => $monster->level), 'dead');
+			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id, "your_l" => $level, "there_l" => $monster->level, 'data' => $g), 'dead');
 		} else {
 			$status = true;
 			$display = $this->lang['monster']['win'][rand(0, 6)];
-			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id), 'beat');
+			$this->sendToPusher($game_id, array("coord" => $coord[0]."x".$coord[1], "pid" => $player_id, 'data' => $g), 'beat');
 		}
 		
 		if ($skip != true) {

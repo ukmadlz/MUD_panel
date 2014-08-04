@@ -5,7 +5,9 @@
 		{{ $html }}
 	</div>
 	<div class="col-md-6">
-		<iframe seamless="seamless" src="http://104.131.212.45/webface" width="100%" height="600px"/>
+		<iframe src="http://104.131.212.45/webface/" width="100%" height="600px">
+			
+		</iframe>
 	</div>
 </div>
 
@@ -21,6 +23,7 @@
 	var pusher = new Pusher('56e8164e0555e60345c9');
 	var channel = pusher.subscribe('map_{{ $game_id }}');
     channel.bind('move', function(data) {
+		console.log(data);
 		$('.player_' + data.pid).remove();
 		$('.pos_' + data.coord).html('<i class="fa ' + data.icon + ' player_' + data.pid + '" title="' + data.pid + '"></i>');
 	});
@@ -30,7 +33,7 @@
 	});
 	
 	channel.bind('dead', function(data) {
-		console.log('User: ' + data.pid + " Died (You: " + data.your_l + " v Them: " + data.there_l);
+		console.log('User: ' + data.pid + " Died (You: " + data.your_l + " v Them: " + data.there_l + " data: " + data.data);
 		$('.player_' + data.pid).remove();
 	});
 	

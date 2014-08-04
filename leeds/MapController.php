@@ -93,7 +93,7 @@ class MapController extends BaseController {
 	
 	public function createLoot()
 	{
-		$start = number_format($this->size / 5, 0);
+		$start = number_format($this->size / 2, 0);
 		$how_many = rand($start, $start + 5);
 		//$how_many = 0;
 		for($i = 1; $i <= $how_many; $i++)
